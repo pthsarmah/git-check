@@ -2,6 +2,11 @@
 
 A CLI tool that scans all folders in your current directory and shows their git status at a glance — unstaged changes, staged but uncommitted files, and branches out of sync with remote.
 
+## Prerequisites
+
+- [Bun](https://bun.sh) — JavaScript runtime used to run and install the tool
+- [Git](https://git-scm.com) — required for scanning repository status
+
 ## Setup
 
 ```bash
