@@ -56,7 +56,7 @@ const checkGitStuff = async (directoryPaths: string[]) => {
 	return gitStatusMap;
 }
 
-const printTree = (dir: string, branches: string[]) => {
+const printTree = (branches: string[]) => {
 	branches.forEach((branch, i) => {
 		const isLast = i === branches.length - 1;
 		const prefix = isLast ? "└─ " : "├─ ";
@@ -66,8 +66,6 @@ const printTree = (dir: string, branches: string[]) => {
 }
 
 const renderGitStatusMap = (statusMap: { directory: string, status: string, commit: string }[]) => {
-	let renderString = "";
-
 	// LEGENDS
 	console.log("\nLEGEND: ");
 	console.log(`\x1b[33m■\x1b[0m - unstaged changes`);
@@ -82,7 +80,7 @@ const renderGitStatusMap = (statusMap: { directory: string, status: string, comm
 		if (s.commit !== "clean") legendMarkers += `\x1b[31m■\x1b[0m `;
 		process.stdout.write(`• ${s.directory} ${legendMarkers}\n`)
 		if (s.commit !== "clean") {
-			printTree(s.directory, s.commit.split(/\n/).filter(f => f !== ""));
+			printTree(s.commit.split(/\n/).filter(f => f !== ""));
 		}
 	})
 }
@@ -122,6 +120,12 @@ const commitAllDirectories = (paths: string[]) => {
 	})
 }
 
+const pushAllDirectories = (paths: string[]) => {
+	paths.forEach(async (dir) => {
+		await $`cd ${dir} && git push`.nothrow().quiet();
+	})
+}
+
 program
 	.name("git-check")
 	.action(async () => {
@@ -146,5 +150,14 @@ program
 		stageAllDirectories(directoryPaths);
 		commitAllDirectories(directoryPaths);
 	});
+
+program
+	.command("push-all")
+	.action(async () => {
+		const directoryPaths = await getDirectoryPaths();
+		stageAllDirectories(directoryPaths);
+		commitAllDirectories(directoryPaths);
+		pushAllDirectories(directoryPaths)
+	})
 
 program.parse();
