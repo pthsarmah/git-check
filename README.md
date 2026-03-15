@@ -27,6 +27,10 @@ Run this from a directory that contains multiple git repos. It will list each re
 
 Branches that are out of sync are shown in a tree view below the repo name.
 
+## Demo
+
+![git-check demo](assets/git-check.png)
+
 ## Install globally
 
 To use `git-check` as a command from anywhere:
