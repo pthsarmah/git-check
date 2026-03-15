@@ -1,15 +1,37 @@
 # git-check
 
-To install dependencies:
+A CLI tool that scans all folders in your current directory and shows their git status at a glance — unstaged changes, staged but uncommitted files, and branches out of sync with remote.
+
+## Setup
 
 ```bash
 bun install
 ```
 
-To run:
+## Usage
 
 ```bash
-bun run index.ts
+bun run git-check.ts
 ```
 
-This project was created using `bun init` in bun v1.3.5. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+Run this from a directory that contains multiple git repos. It will list each repo with color-coded markers:
+
+- Yellow — has unstaged changes
+- Green — has staged changes (not yet committed)
+- Red — branch is ahead/behind remote
+
+Branches that are out of sync are shown in a tree view below the repo name.
+
+## Install globally
+
+To use `git-check` as a command from anywhere:
+
+```bash
+bun link
+```
+
+Then simply run:
+
+```bash
+git-check
+```
