@@ -40,7 +40,7 @@ const checkGitStuff = async (directoryPaths: string[]) => {
 
 	const commandRevListPromises = directoryPaths.map((dir) => {
 		return $`cd ${dir} && git for-each-ref --format="%(refname:short) %(upstream:short) %(upstream:track)" refs/heads`.nothrow().text();
-	})
+	});
 
 	const commandResults = await Promise.all(commandStatusPromises);
 	const commandRevListResults = await Promise.all(commandRevListPromises);
@@ -69,7 +69,7 @@ const renderGitStatusMap = (statusMap: { directory: string, status: string, comm
 	let renderString = "";
 
 	// LEGENDS
-	console.log("\nLEGENDS: ");
+	console.log("\nLEGEND: ");
 	console.log(`\x1b[33m■\x1b[0m - unstaged changes`);
 	console.log(`\x1b[32m■\x1b[0m - staged changes but not commited`);
 	console.log(`\x1b[31m■\x1b[0m - not in sync with remote\n`);
@@ -87,30 +87,64 @@ const renderGitStatusMap = (statusMap: { directory: string, status: string, comm
 	})
 }
 
+const getDirectoryPaths = async () => {
+	const output = await $`ls -la`.text();
+	const outputPaths = output.split(/\n/g);
+
+	const directories = outputPaths.filter((p: string) => {
+		const extension = /\.[A-Za-z0-9]+/g;
+		if (!p.match(extension)) {
+			//does not have extension => not a file
+			if (p !== "." && p !== "..") {
+				return p;
+			}
+		}
+		return null;
+	});
+
+	const directoryPaths = directories.map((dir) => {
+		const curr = process.cwd();
+		return `${curr}/${dir}`;
+	});
+
+	return directoryPaths;
+}
+
+const stageAllDirectories = (paths: string[]) => {
+	paths.forEach(async (dir) => {
+		await $`cd ${dir} && git add .`.nothrow().quiet();
+	})
+}
+
+const commitAllDirectories = (paths: string[]) => {
+	paths.forEach(async (dir) => {
+		await $`cd ${dir} && git commit -m "this is a git-check commit (${crypto.randomUUID()})"`
+	})
+}
+
 program
 	.name("git-check")
 	.action(async () => {
-		const output = await $`ls -la`.text();
-		const outputPaths = output.split(/\n/g);
 
-		const directories = outputPaths.filter((p: string) => {
-			const extension = /\.[A-Za-z0-9]+/g;
-			if (!p.match(extension)) {
-				//does not have extension => not a file
-				if (p !== "." && p !== "..") {
-					return p;
-				}
-			}
-			return null;
-		});
-
-		const directoryPaths = directories.map((dir) => {
-			const curr = process.cwd();
-			return `${curr}/${dir}`;
-		})
-
+		const directoryPaths = await getDirectoryPaths();
 		const res = await checkGitStuff(directoryPaths);
-		const renderedRes = renderGitStatusMap(res);
+
+		renderGitStatusMap(res);
+	});
+
+program
+	.command("stage-all")
+	.action(async () => {
+		const directoryPaths = await getDirectoryPaths();
+		stageAllDirectories(directoryPaths);
+	});
+
+program
+	.command("commit-all")
+	.action(async () => {
+		const directoryPaths = await getDirectoryPaths();
+		stageAllDirectories(directoryPaths);
+		commitAllDirectories(directoryPaths);
 	});
 
 program.parse();
