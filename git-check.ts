@@ -118,7 +118,7 @@ const stageAllDirectories = (paths: string[]) => {
 
 const commitAllDirectories = (paths: string[]) => {
 	paths.forEach(async (dir) => {
-		await $`cd ${dir} && git commit -m "this is a git-check commit (${crypto.randomUUID()})"`
+		await $`cd ${dir} && git commit -m "this is a git-check commit (${crypto.randomUUID()})"`.nothrow().quiet();
 	})
 }
 
