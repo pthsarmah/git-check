@@ -1,0 +1,116 @@
+#!/usr/bin/env bun
+
+import { program } from 'commander';
+import { $ } from 'bun';
+
+const createCommitStatus = (status: string) => {
+	if (!status.includes("ahead") && !status.includes("behind"))
+		return "clean";
+	else
+		return status;
+}
+
+const createStagingStatusFlag = (status: string) => {
+
+	const fileStatuses = status.split(/\n/g);
+
+	if (fileStatuses.length <= 0 || status === "") {
+		return;
+	}
+
+	const statusFlags = new Set(fileStatuses.map((fs) => {
+		return fs?.match(/^.{2}/)?.[0] ?? "";
+	}).filter(Boolean));
+
+	const hasStaged = [...statusFlags].some(s => s[0] !== " ");
+	const hasUnstaged = [...statusFlags].some(s => s[1] !== " ");
+
+	const finalStatus = [
+		hasStaged && "staged",
+		hasUnstaged && "unstaged"
+	].filter(Boolean).join(" ");
+
+	return finalStatus;
+}
+
+const checkGitStuff = async (directoryPaths: string[]) => {
+	const commandStatusPromises = directoryPaths.map((dir) => {
+		return $`cd ${dir} && git status --porcelain`.nothrow().text();
+	});
+
+	const commandRevListPromises = directoryPaths.map((dir) => {
+		return $`cd ${dir} && git for-each-ref --format="%(refname:short) %(upstream:short) %(upstream:track)" refs/heads`.nothrow().text();
+	})
+
+	const commandResults = await Promise.all(commandStatusPromises);
+	const commandRevListResults = await Promise.all(commandRevListPromises);
+
+	const gitStatusMap = directoryPaths.map((path, idx) => {
+		return {
+			directory: path.replace(`${process.cwd()}/`, ''),
+			status: createStagingStatusFlag(commandResults[idx] as string) ?? "",
+			commit: createCommitStatus(commandRevListResults[idx] as string) ?? "",
+		}
+	});
+
+	return gitStatusMap;
+}
+
+const printTree = (dir: string, branches: string[]) => {
+	branches.forEach((branch, i) => {
+		const isLast = i === branches.length - 1;
+		const prefix = isLast ? "└─ " : "├─ ";
+
+		process.stdout.write(`\x1b[31m${prefix}${branch}\n\x1b[0m`);
+	});
+}
+
+const renderGitStatusMap = (statusMap: { directory: string, status: string, commit: string }[]) => {
+	let renderString = "";
+
+	// LEGENDS
+	console.log("\nLEGENDS: ");
+	console.log(`\x1b[33m■\x1b[0m - unstaged changes`);
+	console.log(`\x1b[32m■\x1b[0m - staged changes but not commited`);
+	console.log(`\x1b[31m■\x1b[0m - not in sync with remote\n`);
+	// LEGENDS
+
+	statusMap.forEach((s) => {
+		let legendMarkers = "";
+		if (s.status.includes("unstaged")) legendMarkers += `\x1b[33m■\x1b[0m `;
+		if (s.status.includes("staged")) legendMarkers += `\x1b[32m■\x1b[0m `;
+		if (s.commit !== "clean") legendMarkers += `\x1b[31m■\x1b[0m `;
+		process.stdout.write(`• ${s.directory} ${legendMarkers}\n`)
+		if (s.commit !== "clean") {
+			printTree(s.directory, s.commit.split(/\n/).filter(f => f !== ""));
+		}
+	})
+}
+
+program
+	.name("git-check")
+	.action(async () => {
+		const output = await $`ls -la`.text();
+		const outputPaths = output.split(/\n/g);
+
+		const directories = outputPaths.filter((p: string) => {
+			const extension = /\.[A-Za-z0-9]+/g;
+			if (!p.match(extension)) {
+				//does not have extension => not a file
+				if (p !== "." && p !== "..") {
+					return p;
+				}
+			}
+			return null;
+		});
+
+		const directoryPaths = directories.map((dir) => {
+			const curr = process.cwd();
+			return `${curr}/${dir}`;
+		})
+
+		const res = await checkGitStuff(directoryPaths);
+		const renderedRes = renderGitStatusMap(res);
+	});
+
+program.parse();
