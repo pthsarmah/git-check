@@ -153,7 +153,7 @@ program
 
 program
 	.command("stage")
-	.argument("<list...>", "list of git repos")
+	.argument("<repos...>", "list of git repos")
 	.action(async (repos, _) => {
 		const argumentPaths: string[] = repos;
 		const directoryPaths = await getDirectoryPaths();
