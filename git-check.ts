@@ -152,12 +152,48 @@ program
 	});
 
 program
+	.command("stage")
+	.argument("<list...>", "list of git repos")
+	.action(async (repos, _) => {
+		const argumentPaths: string[] = repos;
+		const directoryPaths = await getDirectoryPaths();
+		const filteredDirectoryPaths = directoryPaths.filter((dir) => argumentPaths.includes(dir.replace(`${process.cwd()}/`, '')));
+
+		stageAllDirectories(filteredDirectoryPaths);
+	});
+
+program
+	.command("commit")
+	.argument("<repos...>", "list of git repos")
+	.action(async (repos, _) => {
+		const argumentPaths: string[] = repos;
+		const directoryPaths = await getDirectoryPaths();
+		const filteredDirectoryPaths = directoryPaths.filter((dir) => argumentPaths.includes(dir.replace(`${process.cwd()}/`, '')));
+
+		stageAllDirectories(filteredDirectoryPaths);
+		commitAllDirectories(filteredDirectoryPaths);
+	});
+
+program
+	.command("push")
+	.argument("<repos...>", "list of git repos")
+	.action(async (repos, _) => {
+		const argumentPaths: string[] = repos;
+		const directoryPaths = await getDirectoryPaths();
+		const filteredDirectoryPaths = directoryPaths.filter((dir) => argumentPaths.includes(dir.replace(`${process.cwd()}/`, '')));
+
+		stageAllDirectories(filteredDirectoryPaths);
+		commitAllDirectories(filteredDirectoryPaths);
+		pushAllDirectories(filteredDirectoryPaths);
+	});
+
+program
 	.command("push-all")
 	.action(async () => {
 		const directoryPaths = await getDirectoryPaths();
 		stageAllDirectories(directoryPaths);
 		commitAllDirectories(directoryPaths);
 		pushAllDirectories(directoryPaths)
-	})
+	});
 
 program.parse();
